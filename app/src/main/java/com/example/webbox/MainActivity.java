@@ -17,6 +17,9 @@ public class MainActivity extends Activity {
     private ProgressBar progressBar;
     private ValueCallback<Uri[]> uploadCallback;
     private static final int FILE_REQUEST = 1001;
+    private View customView;
+    private WebChromeClient.CustomViewCallback customViewCallback;
+    private int oldSystemUiVisibility;
 
     private static final String HOME_URL =
             "https://voao.online";
