@@ -4,16 +4,18 @@ import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Message;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.ConsoleMessage;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.URLUtil;
@@ -23,7 +25,6 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.WebStorage;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -31,9 +32,8 @@ import java.util.ArrayList;
 
 public class MainActivity extends Activity {
 
-    private static final String HOME_URL =
-            "https://voao.online";
-
+    private static final String TAG = "WebBox";
+    private static final String HOME_URL = "https://voao.online";
     private static final int FILE_REQUEST = 1001;
 
     private WebView webView;
@@ -60,8 +60,122 @@ public class MainActivity extends Activity {
         progressBar = findViewById(R.id.progressBar);
 
         configureWebView(webView);
+        setupWebViewClient(webView);
+        setupChromeClient(webView);
 
-        webView.setWebViewClient(new WebViewClient() {
+        webView.setDownloadListener(
+                (url, userAgent, contentDisposition,
+                 mimeType, contentLength) -> {
+
+                    downloadFile(
+                            url,
+                            userAgent,
+                            contentDisposition,
+                            mimeType
+                    );
+                }
+        );
+
+        webView.setOnLongClickListener(v -> {
+
+            WebView.HitTestResult result =
+                    webView.getHitTestResult();
+
+            int type = result.getType();
+
+            if (type == WebView.HitTestResult.IMAGE_TYPE
+                    || type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
+
+                String url = result.getExtra();
+
+                if (url != null) {
+                    downloadFile(
+                            url,
+                            webView.getSettings().getUserAgentString(),
+                            null,
+                            null
+                    );
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        webView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                v.requestFocus();
+            }
+            return false;
+        });
+
+        if (savedInstanceState != null) {
+            if (webView.restoreState(savedInstanceState) == null) {
+                webView.loadUrl(HOME_URL);
+            }
+        } else {
+            webView.loadUrl(HOME_URL);
+        }
+    }
+
+    // WebView 基础配置
+    private void configureWebView(WebView view) {
+
+        WebSettings settings = view.getSettings();
+
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(true);
+
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        settings.setSupportMultipleWindows(true);
+
+        settings.setLoadWithOverviewMode(false);
+        settings.setUseWideViewPort(true);
+
+        settings.setBuiltInZoomControls(true);
+        settings.setDisplayZoomControls(false);
+
+        settings.setMediaPlaybackRequiresUserGesture(false);
+
+        settings.setMixedContentMode(
+                WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        );
+
+        settings.setLoadsImagesAutomatically(true);
+        settings.setBlockNetworkImage(false);
+
+        settings.setDefaultTextEncodingName("UTF-8");
+
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+
+        settings.setNeedInitialFocus(true);
+
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+
+        settings.setSupportZoom(true);
+
+        view.setFocusable(true);
+        view.setFocusableInTouchMode(true);
+
+        view.setClickable(true);
+        view.setLongClickable(true);
+
+        view.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
+        CookieManager cookies = CookieManager.getInstance();
+
+        cookies.setAcceptCookie(true);
+        cookies.setAcceptThirdPartyCookies(view, true);
+    }
+
+    // WebView 页面控制
+    private void setupWebViewClient(WebView view) {
+
+        view.setWebViewClient(new WebViewClient() {
 
             @Override
             public boolean shouldOverrideUrlLoading(
@@ -85,7 +199,9 @@ public class MainActivity extends Activity {
                     String url,
                     Bitmap favicon) {
 
-                progressBar.setVisibility(View.VISIBLE);
+                if (view == webView) {
+                    progressBar.setVisibility(View.VISIBLE);
+                }
             }
 
             @Override
@@ -93,8 +209,10 @@ public class MainActivity extends Activity {
                     WebView view,
                     String url) {
 
-                progressBar.setVisibility(View.GONE);
-                CookieManager.getInstance().flush();
+                if (view == webView) {
+                    progressBar.setVisibility(View.GONE);
+                    CookieManager.getInstance().flush();
+                }
             }
 
             @Override
@@ -104,35 +222,70 @@ public class MainActivity extends Activity {
                     android.webkit.WebResourceError error) {
 
                 if (request.isForMainFrame()) {
-                    progressBar.setVisibility(View.GONE);
 
-                    Toast.makeText(
-                            MainActivity.this,
-                            "网页加载失败，请检查网络",
-                            Toast.LENGTH_SHORT
-                    ).show();
+                    Log.e(TAG,
+                            "网页加载错误：" + error.getDescription());
+
+                    if (view == webView) {
+                        progressBar.setVisibility(View.GONE);
+
+                        Toast.makeText(
+                                MainActivity.this,
+                                "网页加载失败：" + error.getDescription(),
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
                 }
             }
+
+            @Override
+            public void onReceivedHttpError(
+                    WebView view,
+                    WebResourceRequest request,
+                    android.webkit.WebResourceResponse response) {
+
+                Log.e(TAG,
+                        "HTTP错误：" + response.getStatusCode()
+                                + " " + request.getUrl());
+            }
         });
+    }
 
-        webView.setWebChromeClient(new WebChromeClient() {
+    // 网页浏览器功能
+    private void setupChromeClient(WebView view) {
 
-            // 页面加载进度
+        view.setWebChromeClient(new WebChromeClient() {
+
             @Override
             public void onProgressChanged(
                     WebView view,
                     int progress) {
 
-                progressBar.setProgress(progress);
+                if (view == webView) {
+                    progressBar.setProgress(progress);
 
-                progressBar.setVisibility(
-                        progress >= 100
-                                ? View.GONE
-                                : View.VISIBLE
-                );
+                    progressBar.setVisibility(
+                            progress >= 100
+                                    ? View.GONE
+                                    : View.VISIBLE
+                    );
+                }
             }
 
-            // 网页文件上传
+            // JavaScript 控制台日志
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage message) {
+
+                Log.d(TAG,
+                        "JS " + message.messageLevel()
+                                + "：" + message.message()
+                                + "，行号：" + message.lineNumber()
+                                + "，来源：" + message.sourceId());
+
+                return true;
+            }
+
+            // 文件上传
             @Override
             public boolean onShowFileChooser(
                     WebView view,
@@ -146,6 +299,7 @@ public class MainActivity extends Activity {
                 uploadCallback = callback;
 
                 try {
+
                     Intent intent = params.createIntent();
 
                     startActivityForResult(
@@ -168,7 +322,7 @@ public class MainActivity extends Activity {
                 return true;
             }
 
-            // 网页视频全屏
+            // 视频全屏
             @Override
             public void onShowCustomView(
                     View view,
@@ -183,7 +337,6 @@ public class MainActivity extends Activity {
                 customViewCallback = callback;
 
                 Window window = getWindow();
-
                 View decor = window.getDecorView();
 
                 oldSystemUiVisibility =
@@ -207,10 +360,10 @@ public class MainActivity extends Activity {
 
                 decor.setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 );
             }
 
@@ -219,7 +372,7 @@ public class MainActivity extends Activity {
                 hideCustomView(true);
             }
 
-            // 网页 target=_blank 和 window.open
+            // 新窗口转入主 WebView
             @Override
             public boolean onCreateWindow(
                     WebView view,
@@ -233,12 +386,38 @@ public class MainActivity extends Activity {
 
                 popup.setWebViewClient(new WebViewClient() {
 
+                    private boolean openInMain(String url) {
+
+                        if (url == null) {
+                            return false;
+                        }
+
+                        Uri uri = Uri.parse(url);
+                        String scheme = uri.getScheme();
+
+                        if ("http".equalsIgnoreCase(scheme)
+                                || "https".equalsIgnoreCase(scheme)) {
+
+                            webView.post(() -> webView.loadUrl(url));
+
+                            popupViews.remove(popup);
+                            popup.stopLoading();
+                            popup.destroy();
+
+                            return true;
+                        }
+
+                        return handleUrl(uri);
+                    }
+
                     @Override
                     public boolean shouldOverrideUrlLoading(
                             WebView view,
                             WebResourceRequest request) {
 
-                        return handleUrl(request.getUrl());
+                        return openInMain(
+                                request.getUrl().toString()
+                        );
                     }
 
                     @Override
@@ -246,7 +425,16 @@ public class MainActivity extends Activity {
                             WebView view,
                             String url) {
 
-                        return handleUrl(Uri.parse(url));
+                        return openInMain(url);
+                    }
+
+                    @Override
+                    public void onPageStarted(
+                            WebView view,
+                            String url,
+                            Bitmap favicon) {
+
+                        openInMain(url);
                     }
                 });
 
@@ -255,11 +443,9 @@ public class MainActivity extends Activity {
                 popupViews.add(popup);
 
                 WebView.WebViewTransport transport =
-                        (WebView.WebViewTransport)
-                                resultMsg.obj;
+                        (WebView.WebViewTransport) resultMsg.obj;
 
                 transport.setWebView(popup);
-
                 resultMsg.sendToTarget();
 
                 return true;
@@ -269,117 +455,21 @@ public class MainActivity extends Activity {
             public void onCloseWindow(WebView window) {
 
                 popupViews.remove(window);
+
+                window.stopLoading();
                 window.destroy();
             }
         });
-
-        // 文件下载
-        webView.setDownloadListener(
-                (url, userAgent, contentDisposition,
-                 mimeType, contentLength) -> {
-
-                    downloadFile(
-                            url,
-                            userAgent,
-                            contentDisposition,
-                            mimeType
-                    );
-                }
-        );
-
-        // 长按图片下载
-        webView.setOnLongClickListener(v -> {
-
-            WebView.HitTestResult result =
-                    webView.getHitTestResult();
-
-            int type = result.getType();
-
-            if (type == WebView.HitTestResult.IMAGE_TYPE
-                    || type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
-
-                String url = result.getExtra();
-
-                if (url != null) {
-                    downloadFile(
-                            url,
-                            webView.getSettings().getUserAgentString(),
-                            null,
-                            null
-                    );
-
-                    return true;
-                }
-            }
-
-            return false;
-        });
-
-        // 打开固定首页
-        if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState);
-        } else {
-            webView.loadUrl(HOME_URL);
-        }
     }
 
-    // WebView 通用配置
-    private void configureWebView(WebView view) {
-
-        WebSettings settings = view.getSettings();
-
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-
-        settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(true);
-
-        settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setSupportMultipleWindows(true);
-
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-
-        settings.setBuiltInZoomControls(true);
-        settings.setDisplayZoomControls(false);
-
-        settings.setMediaPlaybackRequiresUserGesture(false);
-
-        settings.setMixedContentMode(
-                WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-        );
-
-        settings.setLoadsImagesAutomatically(true);
-        settings.setBlockNetworkImage(false);
-
-        view.setLayerType(
-                View.LAYER_TYPE_HARDWARE,
-                null
-        );
-
-        CookieManager cookies = CookieManager.getInstance();
-
-        cookies.setAcceptCookie(true);
-
-        cookies.setAcceptThirdPartyCookies(
-                view,
-                true
-        );
-    }
-
-    // HTTP、HTTPS 全部留在 APK 内
+    // URL 处理
     private boolean handleUrl(Uri uri) {
 
         String scheme = uri.getScheme();
 
         if ("http".equalsIgnoreCase(scheme)
-                || "https".equalsIgnoreCase(scheme)) {
-
-            return false;
-        }
-
-        if ("about".equalsIgnoreCase(scheme)
+                || "https".equalsIgnoreCase(scheme)
+                || "about".equalsIgnoreCase(scheme)
                 || "javascript".equalsIgnoreCase(scheme)
                 || "data".equalsIgnoreCase(scheme)
                 || "blob".equalsIgnoreCase(scheme)) {
@@ -442,21 +532,14 @@ public class MainActivity extends Activity {
             );
 
             if (userAgent != null) {
-                request.addRequestHeader(
-                        "User-Agent",
-                        userAgent
-                );
+                request.addRequestHeader("User-Agent", userAgent);
             }
 
             String cookie =
-                    CookieManager.getInstance()
-                            .getCookie(url);
+                    CookieManager.getInstance().getCookie(url);
 
             if (cookie != null) {
-                request.addRequestHeader(
-                        "Cookie",
-                        cookie
-                );
+                request.addRequestHeader("Cookie", cookie);
             }
 
             if (mimeType != null) {
@@ -513,9 +596,7 @@ public class MainActivity extends Activity {
 
         webView.setVisibility(View.VISIBLE);
 
-        decor.setSystemUiVisibility(
-                oldSystemUiVisibility
-        );
+        decor.setSystemUiVisibility(oldSystemUiVisibility);
 
         getWindow().clearFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
@@ -555,17 +636,14 @@ public class MainActivity extends Activity {
 
                 if (data.getClipData() != null) {
 
-                    int count =
-                            data.getClipData().getItemCount();
+                    int count = data.getClipData().getItemCount();
 
                     results = new Uri[count];
 
                     for (int i = 0; i < count; i++) {
-
-                        results[i] =
-                                data.getClipData()
-                                        .getItemAt(i)
-                                        .getUri();
+                        results[i] = data.getClipData()
+                                .getItemAt(i)
+                                .getUri();
                     }
 
                 } else if (data.getData() != null) {
@@ -577,7 +655,6 @@ public class MainActivity extends Activity {
             }
 
             uploadCallback.onReceiveValue(results);
-
             uploadCallback = null;
         }
     }
@@ -587,13 +664,11 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
 
         if (customView != null) {
-
             hideCustomView(true);
             return;
         }
 
         if (webView.canGoBack()) {
-
             webView.goBack();
             return;
         }
@@ -620,7 +695,7 @@ public class MainActivity extends Activity {
         }
 
         if (customView != null) {
-            hideCustomView(true);
+            hideCustomView(false);
         }
 
         for (WebView popup : popupViews) {
@@ -638,3 +713,4 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 }
+
