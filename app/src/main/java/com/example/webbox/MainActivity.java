@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -50,6 +51,10 @@ public class MainActivity extends Activity {
     private final ArrayList<WebView> popupViews =
             new ArrayList<>();
 
+    // 页面加载计时
+    private long pageStartTime = 0;
+    private String pageStartUrl = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,10 +64,13 @@ public class MainActivity extends Activity {
         webView = findViewById(R.id.webView);
         progressBar = findViewById(R.id.progressBar);
 
+        progressBar.setVisibility(View.GONE);
+
         configureWebView(webView);
         setupWebViewClient(webView);
         setupChromeClient(webView);
 
+        // 下载功能
         webView.setDownloadListener(
                 (url, userAgent, contentDisposition,
                  mimeType, contentLength) -> {
@@ -76,6 +84,7 @@ public class MainActivity extends Activity {
                 }
         );
 
+        // 长按图片下载
         webView.setOnLongClickListener(v -> {
 
             WebView.HitTestResult result =
@@ -95,6 +104,7 @@ public class MainActivity extends Activity {
                             null,
                             null
                     );
+
                     return true;
                 }
             }
@@ -102,77 +112,102 @@ public class MainActivity extends Activity {
             return false;
         });
 
+        // 触摸响应
         webView.setOnTouchListener((v, event) -> {
+
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 v.requestFocus();
             }
+
             return false;
         });
 
+        // 恢复网页
         if (savedInstanceState != null) {
+
             if (webView.restoreState(savedInstanceState) == null) {
                 webView.loadUrl(HOME_URL);
             }
+
         } else {
+
             webView.loadUrl(HOME_URL);
         }
     }
 
-    // WebView 基础配置
+    // =====================================
+    // WebView 性能和基础配置
+    // =====================================
+
     private void configureWebView(WebView view) {
 
         WebSettings settings = view.getSettings();
 
+        // JavaScript
         settings.setJavaScriptEnabled(true);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+
+        // 网页存储
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
 
+        // 文件访问
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
 
-        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        // 多窗口
         settings.setSupportMultipleWindows(true);
 
+        // 页面显示
         settings.setLoadWithOverviewMode(false);
         settings.setUseWideViewPort(true);
 
+        // 缩放
+        settings.setSupportZoom(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
 
+        // 视频
         settings.setMediaPlaybackRequiresUserGesture(false);
 
+        // HTTP 和 HTTPS 兼容
         settings.setMixedContentMode(
                 WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         );
 
+        // 图片
         settings.setLoadsImagesAutomatically(true);
         settings.setBlockNetworkImage(false);
 
-        settings.setDefaultTextEncodingName("UTF-8");
-
+        // 默认缓存策略
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
+        // 编码
+        settings.setDefaultTextEncodingName("UTF-8");
+
+        // 初始焦点
         settings.setNeedInitialFocus(true);
 
-        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        // 预先绘制屏幕外区域，改善部分页面滚动表现
+        settings.setOffscreenPreRaster(true);
 
-        settings.setSupportZoom(true);
-
+        // 不设置强制硬件图层，使用系统默认硬件加速
         view.setFocusable(true);
         view.setFocusableInTouchMode(true);
-
         view.setClickable(true);
         view.setLongClickable(true);
 
-        view.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-
+        // Cookie
         CookieManager cookies = CookieManager.getInstance();
 
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(view, true);
     }
 
-    // WebView 页面控制
+    // =====================================
+    // 页面控制
+    // =====================================
+
     private void setupWebViewClient(WebView view) {
 
         view.setWebViewClient(new WebViewClient() {
@@ -182,7 +217,9 @@ public class MainActivity extends Activity {
                     WebView view,
                     WebResourceRequest request) {
 
-                return handleUrl(request.getUrl());
+                return handleUrl(
+                        request.getUrl().toString()
+                );
             }
 
             @Override
@@ -190,7 +227,7 @@ public class MainActivity extends Activity {
                     WebView view,
                     String url) {
 
-                return handleUrl(Uri.parse(url));
+                return handleUrl(url);
             }
 
             @Override
@@ -200,6 +237,11 @@ public class MainActivity extends Activity {
                     Bitmap favicon) {
 
                 if (view == webView) {
+
+                    pageStartTime = SystemClock.elapsedRealtime();
+                    pageStartUrl = url;
+
+                    progressBar.setProgress(0);
                     progressBar.setVisibility(View.VISIBLE);
                 }
             }
@@ -210,8 +252,23 @@ public class MainActivity extends Activity {
                     String url) {
 
                 if (view == webView) {
+
                     progressBar.setVisibility(View.GONE);
-                    CookieManager.getInstance().flush();
+
+                    if (pageStartTime > 0) {
+
+                        long elapsed =
+                                SystemClock.elapsedRealtime()
+                                        - pageStartTime;
+
+                        Log.i(TAG,
+                                "页面加载完成，耗时："
+                                        + elapsed
+                                        + " ms，地址："
+                                        + pageStartUrl);
+
+                        pageStartTime = 0;
+                    }
                 }
             }
 
@@ -224,14 +281,17 @@ public class MainActivity extends Activity {
                 if (request.isForMainFrame()) {
 
                     Log.e(TAG,
-                            "网页加载错误：" + error.getDescription());
+                            "网页加载错误："
+                                    + error.getDescription());
 
                     if (view == webView) {
+
                         progressBar.setVisibility(View.GONE);
 
                         Toast.makeText(
                                 MainActivity.this,
-                                "网页加载失败：" + error.getDescription(),
+                                "网页加载失败："
+                                        + error.getDescription(),
                                 Toast.LENGTH_LONG
                         ).show();
                     }
@@ -245,13 +305,18 @@ public class MainActivity extends Activity {
                     android.webkit.WebResourceResponse response) {
 
                 Log.e(TAG,
-                        "HTTP错误：" + response.getStatusCode()
-                                + " " + request.getUrl());
+                        "HTTP错误："
+                                + response.getStatusCode()
+                                + " "
+                                + request.getUrl());
             }
         });
     }
 
-    // 网页浏览器功能
+    // =====================================
+    // Chrome 功能
+    // =====================================
+
     private void setupChromeClient(WebView view) {
 
         view.setWebChromeClient(new WebChromeClient() {
@@ -262,27 +327,39 @@ public class MainActivity extends Activity {
                     int progress) {
 
                 if (view == webView) {
+
                     progressBar.setProgress(progress);
 
-                    progressBar.setVisibility(
-                            progress >= 100
-                                    ? View.GONE
-                                    : View.VISIBLE
-                    );
+                    if (progress >= 100) {
+                        progressBar.setVisibility(View.GONE);
+                    } else {
+                        progressBar.setVisibility(View.VISIBLE);
+                    }
                 }
             }
 
-            // JavaScript 控制台日志
+            // 只记录警告和错误，减少日志干扰
             @Override
             public boolean onConsoleMessage(ConsoleMessage message) {
 
-                Log.d(TAG,
-                        "JS " + message.messageLevel()
-                                + "：" + message.message()
-                                + "，行号：" + message.lineNumber()
-                                + "，来源：" + message.sourceId());
+                if (message.messageLevel()
+                        == ConsoleMessage.MessageLevel.ERROR) {
 
-                return true;
+                    Log.e(TAG,
+                            "JS错误："
+                                    + message.message()
+                                    + "，行号："
+                                    + message.lineNumber());
+
+                } else if (message.messageLevel()
+                        == ConsoleMessage.MessageLevel.WARNING) {
+
+                    Log.w(TAG,
+                            "JS警告："
+                                    + message.message());
+                }
+
+                return false;
             }
 
             // 文件上传
@@ -372,7 +449,7 @@ public class MainActivity extends Activity {
                 hideCustomView(true);
             }
 
-            // 新窗口转入主 WebView
+            // 新窗口统一交给主 WebView
             @Override
             public boolean onCreateWindow(
                     WebView view,
@@ -380,34 +457,50 @@ public class MainActivity extends Activity {
                     boolean userGesture,
                     Message resultMsg) {
 
+                if (view != webView) {
+                    return false;
+                }
+
                 WebView popup = new WebView(MainActivity.this);
 
                 configureWebView(popup);
 
                 popup.setWebViewClient(new WebViewClient() {
 
-                    private boolean openInMain(String url) {
+                    private boolean transferred = false;
 
-                        if (url == null) {
-                            return false;
+                    private boolean transferToMain(String url) {
+
+                        if (transferred || url == null) {
+                            return true;
                         }
 
                         Uri uri = Uri.parse(url);
                         String scheme = uri.getScheme();
+
+                        if ("about".equalsIgnoreCase(scheme)
+                                || "javascript".equalsIgnoreCase(scheme)
+                                || "data".equalsIgnoreCase(scheme)
+                                || "blob".equalsIgnoreCase(scheme)) {
+
+                            return false;
+                        }
+
+                        transferred = true;
 
                         if ("http".equalsIgnoreCase(scheme)
                                 || "https".equalsIgnoreCase(scheme)) {
 
                             webView.post(() -> webView.loadUrl(url));
 
-                            popupViews.remove(popup);
-                            popup.stopLoading();
-                            popup.destroy();
+                        } else {
 
-                            return true;
+                            handleUrl(url);
                         }
 
-                        return handleUrl(uri);
+                        destroyPopup(popup);
+
+                        return true;
                     }
 
                     @Override
@@ -415,9 +508,21 @@ public class MainActivity extends Activity {
                             WebView view,
                             WebResourceRequest request) {
 
-                        return openInMain(
-                                request.getUrl().toString()
-                        );
+                        String url =
+                                request.getUrl().toString();
+
+                        Uri uri = request.getUrl();
+                        String scheme = uri.getScheme();
+
+                        if ("about".equalsIgnoreCase(scheme)
+                                || "javascript".equalsIgnoreCase(scheme)
+                                || "data".equalsIgnoreCase(scheme)
+                                || "blob".equalsIgnoreCase(scheme)) {
+
+                            return false;
+                        }
+
+                        return transferToMain(url);
                     }
 
                     @Override
@@ -425,7 +530,18 @@ public class MainActivity extends Activity {
                             WebView view,
                             String url) {
 
-                        return openInMain(url);
+                        Uri uri = Uri.parse(url);
+                        String scheme = uri.getScheme();
+
+                        if ("about".equalsIgnoreCase(scheme)
+                                || "javascript".equalsIgnoreCase(scheme)
+                                || "data".equalsIgnoreCase(scheme)
+                                || "blob".equalsIgnoreCase(scheme)) {
+
+                            return false;
+                        }
+
+                        return transferToMain(url);
                     }
 
                     @Override
@@ -434,7 +550,17 @@ public class MainActivity extends Activity {
                             String url,
                             Bitmap favicon) {
 
-                        openInMain(url);
+                        if (!transferred) {
+
+                            Uri uri = Uri.parse(url);
+                            String scheme = uri.getScheme();
+
+                            if ("http".equalsIgnoreCase(scheme)
+                                    || "https".equalsIgnoreCase(scheme)) {
+
+                                transferToMain(url);
+                            }
+                        }
                     }
                 });
 
@@ -446,6 +572,7 @@ public class MainActivity extends Activity {
                         (WebView.WebViewTransport) resultMsg.obj;
 
                 transport.setWebView(popup);
+
                 resultMsg.sendToTarget();
 
                 return true;
@@ -453,17 +580,57 @@ public class MainActivity extends Activity {
 
             @Override
             public void onCloseWindow(WebView window) {
-
-                popupViews.remove(window);
-
-                window.stopLoading();
-                window.destroy();
+                destroyPopup(window);
             }
         });
     }
 
+    // =====================================
+    // 清理弹出窗口
+    // =====================================
+
+    private void destroyPopup(WebView popup) {
+
+        if (popup == null) {
+            return;
+        }
+
+        if (popupViews.remove(popup)) {
+
+            try {
+                popup.stopLoading();
+                popup.setWebChromeClient(null);
+                popup.setWebViewClient(null);
+                popup.destroy();
+
+            } catch (Exception e) {
+
+                Log.e(TAG, "关闭弹出窗口失败", e);
+            }
+        }
+    }
+
+    // =====================================
     // URL 处理
-    private boolean handleUrl(Uri uri) {
+    // =====================================
+
+    private boolean handleUrl(String rawUrl) {
+
+        if (rawUrl == null || rawUrl.trim().isEmpty()) {
+            return false;
+        }
+
+        String url = rawUrl.trim();
+
+        // 识别直接写入的 IPv4:端口
+        if (url.matches(
+                "^(\\d{1,3}\\.){3}\\d{1,3}:\\d+(/.*)?$"
+        )) {
+
+            url = "http://" + url;
+        }
+
+        Uri uri = Uri.parse(url);
 
         String scheme = uri.getScheme();
 
@@ -498,7 +665,10 @@ public class MainActivity extends Activity {
         return true;
     }
 
+    // =====================================
     // 下载文件
+    // =====================================
+
     private void downloadFile(
             String url,
             String userAgent,
@@ -580,7 +750,10 @@ public class MainActivity extends Activity {
         }
     }
 
+    // =====================================
     // 退出视频全屏
+    // =====================================
+
     private void hideCustomView(boolean notify) {
 
         if (customView == null) {
@@ -614,7 +787,10 @@ public class MainActivity extends Activity {
         }
     }
 
+    // =====================================
     // 文件选择返回
+    // =====================================
+
     @Override
     protected void onActivityResult(
             int requestCode,
@@ -636,11 +812,13 @@ public class MainActivity extends Activity {
 
                 if (data.getClipData() != null) {
 
-                    int count = data.getClipData().getItemCount();
+                    int count =
+                            data.getClipData().getItemCount();
 
                     results = new Uri[count];
 
                     for (int i = 0; i < count; i++) {
+
                         results[i] = data.getClipData()
                                 .getItemAt(i)
                                 .getUri();
@@ -659,7 +837,10 @@ public class MainActivity extends Activity {
         }
     }
 
+    // =====================================
     // 返回键
+    // =====================================
+
     @Override
     public void onBackPressed() {
 
@@ -668,13 +849,17 @@ public class MainActivity extends Activity {
             return;
         }
 
-        if (webView.canGoBack()) {
+        if (webView != null && webView.canGoBack()) {
             webView.goBack();
             return;
         }
 
         super.onBackPressed();
     }
+
+    // =====================================
+    // 保存状态
+    // =====================================
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -685,6 +870,33 @@ public class MainActivity extends Activity {
 
         super.onSaveInstanceState(outState);
     }
+
+    // =====================================
+    // 前后台
+    // =====================================
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (webView != null) {
+            webView.onResume();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+
+        if (webView != null) {
+            webView.onPause();
+        }
+
+        super.onPause();
+    }
+
+    // =====================================
+    // 释放资源
+    // =====================================
 
     @Override
     protected void onDestroy() {
@@ -698,16 +910,28 @@ public class MainActivity extends Activity {
             hideCustomView(false);
         }
 
-        for (WebView popup : popupViews) {
-            popup.stopLoading();
-            popup.destroy();
+        while (!popupViews.isEmpty()) {
+
+            WebView popup =
+                    popupViews.remove(popupViews.size() - 1);
+
+            try {
+                popup.stopLoading();
+                popup.destroy();
+
+            } catch (Exception e) {
+                Log.e(TAG, "释放弹出窗口失败", e);
+            }
         }
 
-        popupViews.clear();
-
         if (webView != null) {
+
             webView.stopLoading();
+            webView.setWebChromeClient(null);
+            webView.setWebViewClient(null);
             webView.destroy();
+
+            webView = null;
         }
 
         super.onDestroy();
