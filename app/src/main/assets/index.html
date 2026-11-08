@@ -335,7 +335,7 @@ textarea:focus{outline:none;border-color:var(--accent)}
 
 <div class="toast" id="toast"></div>
 
-<!-- ===== 首页门禁（登录版，已去明文） ===== -->
+<!-- ===== 首页门禁 ===== -->
 <div class="gate" id="gate">
   <div class="gate-panel">
     <div class="gate-mark">
@@ -617,7 +617,7 @@ $('#reset').addEventListener('click', () => {
   toast('本地记录已清空');
 });
 
-/* ===================== 密钥门禁：JS 端计算 SHA-256，彻底避免明文 ===================== */
+/* ===================== 密钥门禁：JS 端计算 SHA-256 ===================== */
 function normKey(s) {
   try { return decodeURIComponent(String(s).trim()); } catch (e) { return String(s).trim(); }
 }
@@ -630,7 +630,7 @@ function setGate(msg, cls) {
 
 function closeGate() { $('#gate').classList.add('off'); }
 
-// 新增：JS 端计算 SHA-256 哈希
+// JS 端计算 SHA-256 哈希
 async function sha256(message) {
   const msgBuffer = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -704,6 +704,7 @@ $('#key-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.pr
 if (localStorage.getItem('gate_ok') === '1') {
   closeGate();
 }
+
 /* ===================== 左右滑动返回 ===================== */
 let tStartX = 0, tStartY = 0, tTrack = false, tIgnore = false, tDragging = false;
 document.addEventListener('touchstart', e => {
@@ -771,3 +772,5 @@ go(location.hash.slice(1) || 'home');
 </script>
 </body>
 </html>
+
+
