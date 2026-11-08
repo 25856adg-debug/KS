@@ -350,7 +350,7 @@ textarea:focus{outline:none;border-color:var(--accent)}
     
     <div class="gate-status" id="gate-status">等待输入</div>
     
-    <div class="gate-tip">密码由管理员提供，验证过程已进行加密哈希处理。首次验证通过后，本机将保留登录状态。</div>
+    <div class="gate-tip">密码由管理员提供。首次验证通过后，本机将保留登录状态。</div>
   </div>
 </div>
 
@@ -617,7 +617,7 @@ $('#reset').addEventListener('click', () => {
   toast('本地记录已清空');
 });
 
-/* ===================== 密钥门禁：JS 端计算 SHA-256 ===================== */
+/* ===================== 密钥门禁：纯明文比对 ===================== */
 function normKey(s) {
   try { return decodeURIComponent(String(s).trim()); } catch (e) { return String(s).trim(); }
 }
@@ -629,14 +629,6 @@ function setGate(msg, cls) {
 }
 
 function closeGate() { $('#gate').classList.add('off'); }
-
-// JS 端计算 SHA-256 哈希
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 let unlocking = false;
 
@@ -659,19 +651,11 @@ async function doUnlock() {
 
   unlocking = true;
   btn.disabled = true;
-  setGate("正在验证密码，请稍候…");
+  setGate("正在验证密码…");
 
   try {
-    // 核心步骤：算出输入密码的哈希，然后再交给 Java 端比对
-    const hashedV = await sha256(v);
-    const res = window.androidBridge.checkKey(hashedV);
-
-    if (res === "loading") {
-      setGate("网络不佳，密钥库正在加载，请稍后重试", "err");
-      btn.disabled = false;
-      unlocking = false;
-      return;
-    }
+    // 👇 直接传明文给 Java 进行比对 👇
+    const res = window.androidBridge.checkKey(v);
 
     if (res !== "true") {
       setGate('密码不正确，请核对后重试', 'err');
@@ -692,7 +676,7 @@ async function doUnlock() {
     }, 800);
 
   } catch (err) {
-    setGate('加密运算失败，请重启 APP 重试', 'err');
+    setGate('验证异常，请重启 APP 重试', 'err');
     btn.disabled = false;
     unlocking = false;
   }
