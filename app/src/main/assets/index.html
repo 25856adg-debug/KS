@@ -24,11 +24,8 @@
 html,body{margin:0;padding:0;height:100%;overflow:hidden}
 body{
   background:var(--ink); color:var(--text); font-family:var(--sans); font-size:15px; line-height:1.6;
-  background-image:
-    radial-gradient(1200px 600px at 80% -10%, rgba(229,162,74,.07), transparent 60%),
-    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px);
-  background-size:auto, 100% 3px;
-  overscroll-behavior:none;
+  background-image:radial-gradient(1200px 600px at 80% -10%, rgba(229,162,74,.07), transparent 60%), linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size:auto, 100% 3px; overscroll-behavior:none;
 }
 
 .shell{
@@ -67,8 +64,6 @@ body{
 .card .tx b{display:block;font-size:16px;font-weight:600;letter-spacing:.02em}
 .card .tx small{display:block;color:var(--muted);font-size:13px;margin-top:2px;line-height:1.45}
 .card .cnt{font-family:var(--mono);font-size:11px;color:var(--accent-2);flex:0 0 auto;border:1px solid var(--line);border-radius:var(--radius);padding:2px 7px}
-.card.lead{background:linear-gradient(120deg,#17262A 0%,#1A2020 60%,#221C14 100%)}
-.card.lead .tx b{font-size:18px}
 
 .view{display:none}
 .view.on{display:block;animation:rise .28s ease both}
@@ -84,6 +79,7 @@ body{
 .panel + .panel{margin-top:12px}
 .panel-note{color:var(--muted);font-size:12.5px;margin:10px 0 0}
 
+/* 👇 列表项和操作按钮组的样式 👇 */
 .entries{display:grid;grid-template-columns:1fr;gap:10px}
 .entry{
   display:flex;align-items:center;gap:12px;background:var(--panel-2);border:1px solid var(--line);
@@ -98,8 +94,17 @@ body{
 .entry .etx small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .entry .est{font-family:var(--mono);font-size:11px;color:var(--muted);flex:0 0 auto}
 .entry .est.ok{color:var(--accent-2)}
-.entry .try{border:1px solid var(--line);background:transparent;color:var(--accent);border-radius:var(--radius);padding:6px 10px;font-size:12px;cursor:pointer;flex:0 0 auto}
-.entry .try:hover{background:rgba(229,162,74,.08);border-color:var(--accent)}
+
+/* 操作按钮组 */
+.act-group { display: flex; gap: 6px; flex: 0 0 auto; align-items: center; }
+.act-btn { border: 1px solid var(--line); background: transparent; color: var(--accent); border-radius: var(--radius); padding: 5px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: var(--sans); }
+.act-btn:hover { background: rgba(229,162,74,.1); border-color: var(--accent); }
+.act-btn:active { transform: scale(0.95); }
+
+/* 上传区域 */
+.upload-box { display: flex; align-items: center; justify-content: space-between; background: var(--panel-2); border: 1px dashed var(--line); padding: 12px; border-radius: var(--radius); cursor: pointer; }
+.upload-box:hover { border-color: var(--accent); }
+.upload-status { font-size: 12px; color: var(--accent-2); margin-top: 8px; display: none; }
 
 .row{display:flex;align-items:center;gap:12px;margin:12px 0}
 .row label{font-size:13px;color:var(--muted);width:64px;flex:0 0 auto}
@@ -156,8 +161,6 @@ textarea:focus{outline:none;border-color:var(--accent)}
   .home-head h2{font-size:44px}
   .grid{grid-template-columns:repeat(3,1fr);gap:14px}
   .card{padding:20px;align-items:flex-start;flex-direction:column;gap:14px;min-height:170px}
-  .card.lead{grid-column:span 2;flex-direction:row;align-items:center}
-  .card .cnt{position:absolute;right:16px;bottom:14px}
   .entries{grid-template-columns:repeat(2,1fr)}
   .linkgrid{grid-template-columns:repeat(2,1fr)}
 }
@@ -182,40 +185,35 @@ textarea:focus{outline:none;border-color:var(--accent)}
   <section class="view on" id="v-home">
     <div class="home-head">
       <h2>六种素材，一处调度</h2>
-      <p>每个入口进去是一组可直达的子项，地址先在设置里留成占位，换成真实链接后点即跳转。</p>
+      <p>每个入口进去是一组可直达的子项，支持直接上传和下载，地址先在设置里留成占位。</p>
     </div>
 
     <div class="grid">
       <div class="card" role="button" tabindex="0" data-view="voices">
         <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span>
-        <span class="tx"><b>语音包</b><small>六个音色包，试听后各走各的地址</small></span>
+        <span class="tx"><b>语音包</b><small>六个音色包，支持试听与下载</small></span>
         <span class="cnt">a1–a6</span>
       </div>
-
       <div class="card" role="button" tabindex="0" data-view="video">
         <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="1"/><path d="M17 10l4-2v8l-4-2"/></svg></span>
         <span class="tx"><b>视频创作</b><small>三个视频通道</small></span>
         <span class="cnt">b1–b3</span>
       </div>
-
       <div class="card" role="button" tabindex="0" data-view="images">
         <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="8.5" cy="8.5" r="1.6"/></svg></span>
         <span class="tx"><b>图片流</b><small>五组图源</small></span>
         <span class="cnt">c1–c5</span>
       </div>
-
       <div class="card" role="button" tabindex="0" data-view="models">
         <span class="ic"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="12" cy="18" r="2.4"/><path d="M8 7.5l3 8M16 7.5l-3 8M8.4 6h7.2"/></svg></span>
         <span class="tx"><b>大模型入口</b><small>五个模型入口</small></span>
         <span class="cnt">d1–d5</span>
       </div>
-
       <div class="card" role="button" tabindex="0" data-view="drawings">
         <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 6v14h18V6"/><path d="M7 10h4v4H7zM14 10h4M14 14h4M14 17h2"/></svg></span>
         <span class="tx"><b>图纸生成</b><small>五类工程图样式</small></span>
         <span class="cnt">e1–e5</span>
       </div>
-
       <div class="card" role="button" tabindex="0" data-view="settings">
         <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
         <span class="tx"><b>设置</b><small>强调色、链接配置与导出</small></span>
@@ -232,9 +230,21 @@ textarea:focus{outline:none;border-color:var(--accent)}
       <span class="hint" id="hint-a">a1–a6</span>
     </div>
 
+    <!-- 👇 上传区域 👇 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <label class="upload-box">
+        <div>
+          <b style="font-size:14px; display:block; margin-bottom:4px;">上传语音素材</b>
+          <span style="font-size:12px; color:var(--muted);">支持选照片、文档或音视频</span>
+        </div>
+        <span class="act-btn">选择文件</span>
+        <input type="file" class="upload-input" style="display:none;" accept="*/*">
+      </label>
+      <div class="upload-status"></div>
+    </div>
+
     <div class="panel">
       <div class="entries" id="list-a"></div>
-      <p class="panel-note">左侧为音色包，点条目直达对应地址；右侧试听用本机语音引擎，不改任何跳转。</p>
     </div>
 
     <div class="panel">
@@ -242,7 +252,7 @@ textarea:focus{outline:none;border-color:var(--accent)}
       <div class="row"><label for="pitch">音高</label><input id="pitch" type="range" min="0.5" max="2" step="0.05" value="1"><span class="val" id="pitch-v">1.00</span></div>
       <div class="row" style="margin-bottom:6px"><label for="say">文本</label></div>
       <textarea id="say">夜色落下来，机器还在安静地运转。</textarea>
-</div>
+    </div>
   </section>
 
   <!-- ===== 视频 b1–b3 ===== -->
@@ -252,9 +262,22 @@ textarea:focus{outline:none;border-color:var(--accent)}
       <h3>视频创作</h3>
       <span class="hint" id="hint-b">b1–b3</span>
     </div>
+
+    <!-- 👇 上传区域 👇 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <label class="upload-box">
+        <div>
+          <b style="font-size:14px; display:block; margin-bottom:4px;">上传视频素材</b>
+          <span style="font-size:12px; color:var(--muted);">支持选照片、文档或音视频</span>
+        </div>
+        <span class="act-btn">选择文件</span>
+        <input type="file" class="upload-input" style="display:none;" accept="video/*">
+      </label>
+      <div class="upload-status"></div>
+    </div>
+
     <div class="panel">
       <div class="entries" id="list-b"></div>
-      <p class="panel-note">三个视频通道，当前地址为占位，换成真实链接后点击即在新标签打开。</p>
     </div>
   </section>
 
@@ -265,9 +288,22 @@ textarea:focus{outline:none;border-color:var(--accent)}
       <h3>图片流</h3>
       <span class="hint" id="hint-c">c1–c5</span>
     </div>
+    
+    <!-- 👇 上传区域 👇 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <label class="upload-box">
+        <div>
+          <b style="font-size:14px; display:block; margin-bottom:4px;">上传图片素材</b>
+          <span style="font-size:12px; color:var(--muted);">支持选照片、文档或音视频</span>
+        </div>
+        <span class="act-btn">选择文件</span>
+        <input type="file" class="upload-input" style="display:none;" accept="image/*">
+      </label>
+      <div class="upload-status"></div>
+    </div>
+
     <div class="panel">
       <div class="entries" id="list-c"></div>
-      <p class="panel-note">五组图源，各自绑定一个地址。</p>
     </div>
   </section>
 
@@ -277,10 +313,23 @@ textarea:focus{outline:none;border-color:var(--accent)}
       <button class="back" data-go="home">返回</button>
       <h3>大模型入口</h3>
       <span class="hint" id="hint-d">d1–d5</span>
-</div>
+    </div>
+
+    <!-- 👇 上传区域 👇 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <label class="upload-box">
+        <div>
+          <b style="font-size:14px; display:block; margin-bottom:4px;">上传语料/配置文件</b>
+          <span style="font-size:12px; color:var(--muted);">支持选照片、文档或音视频</span>
+        </div>
+        <span class="act-btn">选择文件</span>
+        <input type="file" class="upload-input" style="display:none;" accept="*/*">
+      </label>
+      <div class="upload-status"></div>
+    </div>
+
     <div class="panel">
       <div class="entries" id="list-d"></div>
-      <p class="panel-note">五个模型入口，分别指向各自的地址。</p>
     </div>
   </section>
 
@@ -291,9 +340,22 @@ textarea:focus{outline:none;border-color:var(--accent)}
       <h3>图纸生成</h3>
       <span class="hint" id="hint-e">e1–e5</span>
     </div>
+
+    <!-- 👇 上传区域 👇 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <label class="upload-box">
+        <div>
+          <b style="font-size:14px; display:block; margin-bottom:4px;">上传图纸文件</b>
+          <span style="font-size:12px; color:var(--muted);">支持选照片、文档或音视频</span>
+        </div>
+        <span class="act-btn">选择文件</span>
+        <input type="file" class="upload-input" style="display:none;" accept="*/*">
+      </label>
+      <div class="upload-status"></div>
+    </div>
+
     <div class="panel">
       <div class="entries" id="list-e"></div>
-      <p class="panel-note">五类工程图入口，分别绑定各自地址。</p>
     </div>
   </section>
 
@@ -321,7 +383,7 @@ textarea:focus{outline:none;border-color:var(--accent)}
         <button class="btn" id="save-links">保存链接</button>
         <button class="btn ghost" id="reset-links">恢复占位</button>
       </div>
-      <p class="panel-note">a1–a6 语音包，b1–b3 视频，c1–c5 图片，d1–d5 大模型，e1–e5 图纸生成。源码里已写死默认地址，这里改过的会存到本地并优先于默认。</p>
+      <p class="panel-note">a1–a6 语音包，b1–b3 视频，c1–c5 图片，d1–d5 大模型，e1–e5 图纸生成。点击“下载”按钮可下载该链接内容。</p>
     </div>
 
     <div class="panel">
@@ -469,23 +531,29 @@ function jump(key) {
     toast(key + ' 还是占位地址 ' + url + '，到设置里填真实链接');
     return;
   }
-  window.location.href = url;
+  window.location.href = url; 
 }
 
-/* ===================== 子项列表 ===================== */
+/* ===================== 子项列表（加入下载按钮） ===================== */
 function renderGroup(g) {
   const el = $('#' + 'list-' + g.key);
   if (!el) return;
   el.innerHTML = g.items.map(it => {
     const ok = isRealUrl(LINKS[it.id]);
-    const tryBtn = g.key === 'a' ? `<button class="try" data-try="${it.id}">试听</button>` : '';
+    // 语音包多一个试听按钮
+    const tryBtn = g.key === 'a' ? `<button class="act-btn" data-try="${it.id}">试听</button>` : '';
+    // 所有条目都有下载按钮
+    const dlBtn = `<button class="act-btn" data-download="${it.id}">下载</button>`;
+
     return `
-      <button class="entry" data-jump="${it.id}">
+      <div class="entry" data-jump="${it.id}" tabindex="0">
         <span class="key">${it.id.slice(1)}</span>
         <span class="etx"><b>${it.name}</b><small>${it.desc}</small></span>
-        <span class="est ${ok ? 'ok' : ''}">${ok ? '已配置' : '占位'}</span>
-        ${tryBtn}
-      </button>`;
+        <div class="act-group">
+          ${tryBtn}
+          ${dlBtn}
+        </div>
+      </div>`;
   }).join('');
 }
 
@@ -506,7 +574,7 @@ function renderLinks() {
     </div>`).join('');
 }
 
-/* ===================== 事件 ===================== */
+/* ===================== 全局事件 ===================== */
 document.addEventListener('click', e => {
   const back = e.target.closest('[data-go]');
   if (back) { e.preventDefault(); go(back.dataset.go); return; }
@@ -514,9 +582,36 @@ document.addEventListener('click', e => {
   const view = e.target.closest('[data-view]');
   if (view) { e.preventDefault(); go(view.dataset.view); return; }
 
+  // 处理试听
   const tryBtn = e.target.closest('[data-try]');
   if (tryBtn) { e.preventDefault(); e.stopPropagation(); speak(tryBtn.dataset.try); return; }
 
+  // 👇 处理下载（阻止冒泡，防止触发外层跳转） 👇
+  const dlBtn = e.target.closest('[data-download]');
+  if (dlBtn) {
+    e.preventDefault(); e.stopPropagation();
+    const key = dlBtn.dataset.download;
+    const url = LINKS[key];
+    if (!isRealUrl(url)) { toast('该条目地址未配置，无法下载'); return; }
+    
+    if (typeof window.androidBridge !== "undefined" && window.androidBridge.nativeDownload) {
+      // 提取文件名，简单处理
+      let fileName = key + "_下载文件";
+      try { 
+         const urlObj = new URL(url); 
+         const parts = urlObj.pathname.split('/');
+         if(parts.length > 0 && parts[parts.length-1]) fileName = parts[parts.length-1];
+      } catch(err){}
+      window.androidBridge.nativeDownload(url, fileName);
+      toast('已加入系统下载队列');
+    } else {
+      // 在普通浏览器中的降级方案
+      window.open(url, '_blank');
+    }
+    return;
+  }
+
+  // 处理跳转（点击条目的其他地方）
   const jumpBtn = e.target.closest('[data-jump]');
   if (jumpBtn) { e.preventDefault(); jump(jumpBtn.dataset.jump); return; }
 
@@ -530,6 +625,21 @@ document.addEventListener('click', e => {
   }
 });
 
+// 监听文件选择
+document.addEventListener('change', e => {
+  if (e.target.classList.contains('upload-input')) {
+    const file = e.target.files[0];
+    if (file) {
+      const statusEl = e.target.closest('.panel').querySelector('.upload-status');
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.textContent = `已选择: ${file.name} (${(file.size / 1024).toFixed(1)} KB) - 准备上传`;
+      }
+      toast('文件已选择准备上传');
+    }
+  }
+});
+
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   const card = e.target.closest('[data-view]');
@@ -540,14 +650,13 @@ document.addEventListener('keydown', e => {
 
 window.addEventListener('hashchange', () => go(location.hash.slice(1)));
 
-/* ===================== 试听 ===================== */
+/* ===================== 试听 (原生) ===================== */
 const VOICE_TUNE = {
   a1: { rate: 1.05, pitch: 1.05 }, a2: { rate: 0.92, pitch: 1.0 },
   a3: { rate: 0.95, pitch: 0.85 }, a4: { rate: 1.15, pitch: 1.25 },
   a5: { rate: 1.0, pitch: 0.95 }, a6: { rate: 1.1, pitch: 1.5 }
 };
 
-// 👇 1. 替换原有的 speak 函数，改为调用 Android 原生语音 👇
 function speak(id) {
   if (typeof window.androidBridge === "undefined" || !window.androidBridge.speak) {
     toast('当前环境不支持原生语音');
@@ -555,12 +664,10 @@ function speak(id) {
   }
   const tune = VOICE_TUNE[id] || { rate: 1, pitch: 1 };
   const name = (GROUPS[0].items.find(i => i.id === id) || {}).name || id;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance($('#say').value || '这是一段试听文本');
-  u.rate = Math.min(2, Math.max(0.5, parseFloat($('#rate').value) * tune.rate));
-  u.pitch = Math.min(2, Math.max(0.5, parseFloat($('#pitch').value) * tune.pitch));
-  u.lang = 'zh-CN';
-  window.speechSynthesis.speak(u);
+  const text = $('#say').value || '这是一段试听文本';
+  const finalRate = Math.min(2, Math.max(0.5, parseFloat($('#rate').value) * tune.rate));
+  const finalPitch = Math.min(2, Math.max(0.5, parseFloat($('#pitch').value) * tune.pitch));
+  window.androidBridge.speak(text, finalRate, finalPitch);
   toast('正在朗读：' + name);
 }
 
@@ -598,11 +705,7 @@ $('#reset-links').addEventListener('click', () => {
 
 /* ===================== 导出 / 清空 ===================== */
 $('#export').addEventListener('click', () => {
-  const data = {
-    accent: store.get('accent', '琥珀'),
-    links: LINKS,
-    exportedAt: new Date().toISOString()
-  };
+  const data = { accent: store.get('accent', '琥珀'), links: LINKS, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -621,10 +724,8 @@ $('#reset').addEventListener('click', () => {
   toast('本地记录已清空');
 });
 
-/* ===================== 密钥门禁：纯明文，无异步，无异常 ===================== */
-function normKey(s) {
-  try { return decodeURIComponent(String(s).trim()); } catch (e) { return String(s).trim(); }
-}
+/* ===================== 密钥门禁 ===================== */
+function normKey(s) { try { return decodeURIComponent(String(s).trim()); } catch (e) { return String(s).trim(); } }
 
 function setGate(msg, cls) {
   const el = $('#gate-status');
@@ -632,69 +733,36 @@ function setGate(msg, cls) {
   el.className = 'gate-status' + (cls ? ' ' + cls : '');
 }
 
-function normKey(s) {
-  try { return decodeURIComponent(String(s).trim()); } catch (e) { return String(s).trim(); }
-}
-
-function setGate(msg, cls) {
-  const el = $('#gate-status');
-  el.textContent = msg;
-  el.className = 'gate-status' + (cls ? ' ' + cls : '');
-}
-
-// 暴力隐藏，不留任何后患
 function closeGate() { 
   const gate = $('#gate');
-  if(gate) {
-    gate.classList.add('off'); 
-    gate.style.display = 'none'; 
-  }
+  if(gate) { gate.classList.add('off'); gate.style.display = 'none'; }
 }
 
-// 彻底去掉死锁，去掉异步延迟
 function doUnlock() {
   const btn = $('#key-btn');
   const input = $('#key-input');
   const v = normKey(input.value);
 
-  if (!v) {
-    setGate('密码不能为空，请重新输入', 'err');
-    input.focus();
-    return;
-  }
-
-  if (typeof window.androidBridge === "undefined") {
-    setGate("请使用 Android APP 打开", "err");
-    return;
-  }
+  if (!v) { setGate('密码不能为空，请重新输入', 'err'); input.focus(); return; }
+  if (typeof window.androidBridge === "undefined") { setGate("请使用 Android APP 打开", "err"); return; }
 
   setGate("正在验证…");
-
-  // 1. 直接调用 Java 拿结果
   const res = window.androidBridge.checkKey(v);
 
-  // 2. 根据结果立即执行
   if (res === "true") {
     setGate('验证成功，正在进入系统…', 'ok');
-    // 尝试存入本地，就算报错也不影响下面的关闭动作
     try { localStorage.setItem('gate_ok', '1'); } catch(e) {}
-    
-    // 👇 立刻关闭，绝不等待 👇
     closeGate();
   } else {
     setGate('密码不正确，请核对后重试', 'err');
-    input.value = '';
-    input.focus();
+    input.value = ''; input.focus();
   }
 }
 
 $('#key-btn').addEventListener('click', doUnlock);
 $('#key-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doUnlock(); } });
 
-// 页面加载时检查是否曾经登录过
-if (localStorage.getItem('gate_ok') === '1') {
-  closeGate();
-}
+if (localStorage.getItem('gate_ok') === '1') { closeGate(); }
 
 /* ===================== 左右滑动返回 ===================== */
 let tStartX = 0, tStartY = 0, tTrack = false, tIgnore = false, tDragging = false;
