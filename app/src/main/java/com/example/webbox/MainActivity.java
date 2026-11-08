@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout fullscreenContainer;
     private WebChromeClient.CustomViewCallback customViewCallback;
 
+    // 你的三个明文密码
     private static final String[] VALID_KEYS = {
             "djcunekckeucnfsddjducje",
             "cjfneuchndchjsudysjfjwjf",
@@ -40,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
             return validKeySet.contains(inputKey.trim()) ? "true" : "false";
         }
 
-        // 👇 新增：接收网页传来的试听请求，调用系统原生 TTS 👇
+        // 原生语音引擎
         @JavascriptInterface
         public void speak(String text, float rate, float pitch) {
             if (textToSpeech != null && textToSpeech.isLanguageAvailable(Locale.CHINA) >= 0) {
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 初始化原生语音引擎
+        // 初始化原生语音
         textToSpeech = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 textToSpeech.setLanguage(Locale.CHINA);
@@ -66,13 +67,13 @@ public class MainActivity extends AppCompatActivity {
         webView = findViewById(R.id.webview);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true); // 解决卡在验证成功
-        settings.setMediaPlaybackRequiresUserGesture(false); // 👈 允许网页音视频自动播放
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW); // 允许HTTPS加载HTTP资源
+        settings.setDomStorageEnabled(true); // 开启本地存储，防卡死
+        settings.setMediaPlaybackRequiresUserGesture(false); // 允许网页视频音频自动播放
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW); 
 
         webView.addJavascriptInterface(new JsBridge(), "androidBridge");
 
-        // 处理网页视频全屏播放
+        // 视频全屏处理
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
@@ -101,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 强制所有链接在 WebView 内部打开
+        // 强制网页在内部打开
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -110,14 +111,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        webView.loadUrl("file:///android_asset/index.html");
+        // 加个 ?v=3 防止手机加载旧版缓存的网页
+        webView.loadUrl("file:///android_asset/index.html?v=3");
 
-        // 接管侧滑/返回键
+        // 接管返回键
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 if (fullscreenContainer != null) {
-                    webView.getWebChromeClient().onHideCustomView(); // 退出全屏
+                    webView.getWebChromeClient().onHideCustomView();
                 } else if (webView.canGoBack()) {
                     webView.goBack();
                 } else {
@@ -141,5 +143,4 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 }
-
 
