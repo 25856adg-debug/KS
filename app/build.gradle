@@ -43,9 +43,6 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // JSON 解析
     implementation 'com.google.code.gson:gson:2.10.1'
-
-    // OkHttp 网络请求
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
