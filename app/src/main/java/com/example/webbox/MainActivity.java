@@ -38,8 +38,8 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webview);
         webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setDomStorageEnabled(true);
         webView.addJavascriptInterface(new JsBridge(), "androidBridge");
-
         webView.loadUrl("file:///android_asset/index.html");
     }
 }
