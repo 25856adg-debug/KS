@@ -668,19 +668,23 @@ function doUnlock() {
     return;
   }
 
-  // 👇 验证通过：立刻隐藏界面，不搞延迟 👇
-  setGate('验证成功，正在进入系统…', 'ok');
-  localStorage.setItem('gate_ok', '1');
-  
-  // 立刻关闭
-  closeGate(); 
+// 验证通过
+setGate('验证成功，正在进入系统…', 'ok');
 
-  // 状态复原放后面，不影响画面
-  setTimeout(() => {
-    unlocking = false;
-    btn.disabled = false;
-  }, 500);
+// 👇 修改这里：优先关闭弹窗！即使后面存储报错，也不影响进入系统 👇
+closeGate(); 
+
+try {
+  localStorage.setItem('gate_ok', '1');
+} catch(e) {
+  console.log("本地存储失败，但不影响进入");
 }
+
+// 状态复原
+setTimeout(() => {
+  unlocking = false;
+  btn.disabled = false;
+}, 500);
 
 $('#key-btn').addEventListener('click', doUnlock);
 $('#key-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doUnlock(); } });
