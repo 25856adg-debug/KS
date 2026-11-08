@@ -696,24 +696,6 @@ if (localStorage.getItem('gate_ok') === '1') {
   closeGate();
 }
 
-try {
-  localStorage.setItem('gate_ok', '1');
-} catch(e) {
-  console.log("本地存储失败，但不影响进入");
-}
-
-// 状态复原
-setTimeout(() => {
-  unlocking = false;
-  btn.disabled = false;
-}, 500);
-
-$('#key-btn').addEventListener('click', doUnlock);
-$('#key-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doUnlock(); } });
-
-if (localStorage.getItem('gate_ok') === '1') {
-  closeGate();
-}
 /* ===================== 左右滑动返回 ===================== */
 let tStartX = 0, tStartY = 0, tTrack = false, tIgnore = false, tDragging = false;
 document.addEventListener('touchstart', e => {
