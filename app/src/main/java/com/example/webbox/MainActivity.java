@@ -34,7 +34,7 @@ import java.util.ArrayList;
 public class MainActivity extends Activity {
 
     private static final String TAG = "WebBox";
-    private static final String HOME_URL = "https://voao.online";
+    private static final String HOME_URL = "https://covv.online";
     private static final int FILE_REQUEST = 1001;
 
     private WebView webView;
