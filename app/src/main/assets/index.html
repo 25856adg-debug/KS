@@ -469,7 +469,7 @@ function jump(key) {
     toast(key + ' 还是占位地址 ' + url + '，到设置里填真实链接');
     return;
   }
-  window.open(url, '_blank', 'noopener');
+  window.location.href = url;
 }
 
 /* ===================== 子项列表 ===================== */
@@ -547,8 +547,12 @@ const VOICE_TUNE = {
   a5: { rate: 1.0, pitch: 0.95 }, a6: { rate: 1.1, pitch: 1.5 }
 };
 
+// 👇 1. 替换原有的 speak 函数，改为调用 Android 原生语音 👇
 function speak(id) {
-  if (!('speechSynthesis' in window)) { toast('当前浏览器不支持语音合成'); return; }
+  if (typeof window.androidBridge === "undefined" || !window.androidBridge.speak) {
+    toast('当前环境不支持原生语音');
+    return;
+  }
   const tune = VOICE_TUNE[id] || { rate: 1, pitch: 1 };
   const name = (GROUPS[0].items.find(i => i.id === id) || {}).name || id;
   window.speechSynthesis.cancel();
