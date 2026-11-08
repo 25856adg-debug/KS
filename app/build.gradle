@@ -7,11 +7,11 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.example.webbox'
+        applicationId 'com.example.yabdnx'
         minSdk 23
         targetSdk 35
         versionCode 1
-        versionName '1.0'
+        versionName '2.0.2'
     }
 
     compileOptions {
