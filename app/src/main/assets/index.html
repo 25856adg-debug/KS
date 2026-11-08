@@ -617,7 +617,7 @@ $('#reset').addEventListener('click', () => {
   toast('本地记录已清空');
 });
 
-/* ===================== 密钥门禁：纯明文比对 ===================== */
+/* ===================== 密钥门禁：纯明文，无异步，无异常 ===================== */
 function normKey(s) {
   try { return decodeURIComponent(String(s).trim()); } catch (e) { return String(s).trim(); }
 }
@@ -632,7 +632,8 @@ function closeGate() { $('#gate').classList.add('off'); }
 
 let unlocking = false;
 
-async function doUnlock() {
+// 彻底去掉 async 和 await，变成纯同步函数
+function doUnlock() {
   if (unlocking) return;
   const btn = $('#key-btn');
   const input = $('#key-input');
@@ -645,41 +646,34 @@ async function doUnlock() {
   }
 
   if (typeof window.androidBridge === "undefined") {
-    setGate("请使用 Android APP 打开，浏览器不支持", "err");
+    setGate("请使用 Android APP 打开", "err");
     return;
   }
 
   unlocking = true;
   btn.disabled = true;
-  setGate("正在验证密码…");
+  setGate("正在验证…");
 
-  try {
-    // 👇 直接传明文给 Java 进行比对 👇
-    const res = window.androidBridge.checkKey(v);
+  // 直接比对，没有任何异步和异常捕获
+  const res = window.androidBridge.checkKey(v);
 
-    if (res !== "true") {
-      setGate('密码不正确，请核对后重试', 'err');
-      input.value = '';
-      input.focus();
-      btn.disabled = false;
-      unlocking = false;
-      return;
-    }
-
-    // 验证通过
-    setGate('验证成功，正在进入系统…', 'ok');
-    localStorage.setItem('gate_ok', '1');
-    setTimeout(() => {
-      closeGate();
-      unlocking = false;
-      btn.disabled = false;
-    }, 800);
-
-  } catch (err) {
-    setGate('验证异常，请重启 APP 重试', 'err');
+  if (res !== "true") {
+    setGate('密码不正确，请核对后重试', 'err');
+    input.value = '';
+    input.focus();
     btn.disabled = false;
     unlocking = false;
+    return;
   }
+
+  // 验证通过
+  setGate('验证成功，正在进入系统…', 'ok');
+  localStorage.setItem('gate_ok', '1');
+  setTimeout(() => {
+    closeGate();
+    unlocking = false;
+    btn.disabled = false;
+  }, 500);
 }
 
 $('#key-btn').addEventListener('click', doUnlock);
@@ -688,7 +682,6 @@ $('#key-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.pr
 if (localStorage.getItem('gate_ok') === '1') {
   closeGate();
 }
-
 /* ===================== 左右滑动返回 ===================== */
 let tStartX = 0, tStartY = 0, tTrack = false, tIgnore = false, tDragging = false;
 document.addEventListener('touchstart', e => {
