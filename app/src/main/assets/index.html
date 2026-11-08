@@ -632,15 +632,27 @@ function setGate(msg, cls) {
   el.className = 'gate-status' + (cls ? ' ' + cls : '');
 }
 
-function closeGate() { 
-  $('#gate').classList.add('off');
-  $('#gate').style.display = 'none'; // 双重保险，强制隐藏
+function normKey(s) {
+  try { return decodeURIComponent(String(s).trim()); } catch (e) { return String(s).trim(); }
 }
 
-let unlocking = false;
+function setGate(msg, cls) {
+  const el = $('#gate-status');
+  el.textContent = msg;
+  el.className = 'gate-status' + (cls ? ' ' + cls : '');
+}
 
+// 暴力隐藏，不留任何后患
+function closeGate() { 
+  const gate = $('#gate');
+  if(gate) {
+    gate.classList.add('off'); 
+    gate.style.display = 'none'; 
+  }
+}
+
+// 彻底去掉死锁，去掉异步延迟
 function doUnlock() {
-  if (unlocking) return;
   const btn = $('#key-btn');
   const input = $('#key-input');
   const v = normKey(input.value);
@@ -656,27 +668,33 @@ function doUnlock() {
     return;
   }
 
-  unlocking = true;
-  btn.disabled = true;
   setGate("正在验证…");
 
-  // 直接比对
+  // 1. 直接调用 Java 拿结果
   const res = window.androidBridge.checkKey(v);
 
-  if (res !== "true") {
+  // 2. 根据结果立即执行
+  if (res === "true") {
+    setGate('验证成功，正在进入系统…', 'ok');
+    // 尝试存入本地，就算报错也不影响下面的关闭动作
+    try { localStorage.setItem('gate_ok', '1'); } catch(e) {}
+    
+    // 👇 立刻关闭，绝不等待 👇
+    closeGate();
+  } else {
     setGate('密码不正确，请核对后重试', 'err');
     input.value = '';
     input.focus();
-    btn.disabled = false;
-    unlocking = false;
-    return;
   }
+}
 
-// 验证通过
-setGate('验证成功，正在进入系统…', 'ok');
+$('#key-btn').addEventListener('click', doUnlock);
+$('#key-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doUnlock(); } });
 
-// 👇 修改这里：优先关闭弹窗！即使后面存储报错，也不影响进入系统 👇
-closeGate(); 
+// 页面加载时检查是否曾经登录过
+if (localStorage.getItem('gate_ok') === '1') {
+  closeGate();
+}
 
 try {
   localStorage.setItem('gate_ok', '1');
