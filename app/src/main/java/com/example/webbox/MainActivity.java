@@ -1,3 +1,4 @@
+package com.example.webbox;
 import android.os.Bundle;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
