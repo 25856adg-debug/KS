@@ -628,11 +628,13 @@ function setGate(msg, cls) {
   el.className = 'gate-status' + (cls ? ' ' + cls : '');
 }
 
-function closeGate() { $('#gate').classList.add('off'); }
+function closeGate() { 
+  $('#gate').classList.add('off');
+  $('#gate').style.display = 'none'; // 双重保险，强制隐藏
+}
 
 let unlocking = false;
 
-// 彻底去掉 async 和 await，变成纯同步函数
 function doUnlock() {
   if (unlocking) return;
   const btn = $('#key-btn');
@@ -654,7 +656,7 @@ function doUnlock() {
   btn.disabled = true;
   setGate("正在验证…");
 
-  // 直接比对，没有任何异步和异常捕获
+  // 直接比对
   const res = window.androidBridge.checkKey(v);
 
   if (res !== "true") {
@@ -666,11 +668,15 @@ function doUnlock() {
     return;
   }
 
-  // 验证通过
+  // 👇 验证通过：立刻隐藏界面，不搞延迟 👇
   setGate('验证成功，正在进入系统…', 'ok');
   localStorage.setItem('gate_ok', '1');
+  
+  // 立刻关闭
+  closeGate(); 
+
+  // 状态复原放后面，不影响画面
   setTimeout(() => {
-    closeGate();
     unlocking = false;
     btn.disabled = false;
   }, 500);
